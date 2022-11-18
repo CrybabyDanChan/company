@@ -8,6 +8,7 @@ const DEVELOPERS_RANG = ['junior', 'middle', 'senior'];
 
 class Task {
     id;
+    inProgress = false;
     completed = false;
 
     constructor({
@@ -26,6 +27,7 @@ class Task {
 }
 
 class Project {
+    inProgress = false;
     completed = false;
     tasks = [];
 
@@ -61,6 +63,21 @@ class Developer {
         this.rang = DEVELOPERS_RANG[getRandomInteger(0, 2)];
         this.rate = DEVELOPERS_RANG.findIndex((item) => item === this.rang);
     }
+
+    startWorking = () => {
+        const currentTask = this.tasksList[0];
+
+        if (currentTask.limit) {
+            console.log(currentTask)
+            currentTask.limit = currentTask.limit - 1;
+            currentTask.inProgress = true
+        } else {
+            currentTask.inProgress = false;
+            currentTask.completed = true;
+
+            this.tasksList = [];
+        }
+    }
 }
 
 class Firma {
@@ -70,11 +87,10 @@ class Firma {
     constructor() {
         this.setEmployees();
         this.sendProjects();
-        this.startWorking();
     }
 
     setEmployees = () => {
-        getRandomIteration(1, 40, (_, index) => {
+        getRandomIteration(1, 2, (_, index) => {
             const employee = new Developer(index + 1);
 
             this.employees.push(employee);
@@ -82,23 +98,40 @@ class Firma {
     }
 
     sendProjects = () => {
-        getRandomIteration(1, 10, (_, index) => {
+        getRandomIteration(1, 1, (_, index) => {
             const project = new Project(index + 1);
 
             this.projects.push(project);
         });
     }
 
-    startWorking = () => {
-        getRandomIteration(1, 2, () => {
-            const notCompletedProjects = this.projects.filter((project) => !project.completed);
-            const currentProject = notCompletedProjects[0];
+    getFreeEmployees = () => this.employees.reduce((acc, employee) => ({
+        ...acc,
+        [!employee.tasksList.length && employee.specialization]: [...acc[employee.specialization], employee]
+    }), {
+        [TYPE_SPECIALIZATION[0]]: [],
+        [TYPE_SPECIALIZATION[1]]: [],
+    })
 
-            currentProject.tasks.forEach((task) => {
-                console.log(task)
-            })
+    startWorking = () => {
+        const notCompletedProjects = this.projects.filter((project) => !project.completed);
+        const currentProject = notCompletedProjects[0];
+
+        currentProject.tasks.forEach((task) => {
+            const freeEmployees = this.getFreeEmployees();
+            const activeEmployee = freeEmployees[task.type][0];
+
+            if (activeEmployee) {
+                activeEmployee.tasksList.push(task);
+            }
         })
+
+        this.employees.forEach(employee => employee.startWorking());
     }
 }
 
 const firma = new Firma();
+
+firma.startWorking();
+
+firma.startWorking();
