@@ -48,7 +48,7 @@ class Project {
     }
 
     createTasks = () => {
-        getRandomIteration(1, 100, (_, index) => {
+        getRandomIteration(1, 10, (_, index) => {
             this.createTask(index + 1);
         });
     }
@@ -60,21 +60,37 @@ class Developer {
     constructor(id) {
         this.id = id;
         this.specialization = TYPE_SPECIALIZATION[getRandomInteger(0, 1)];
-        this.rang = DEVELOPERS_RANG[getRandomInteger(0, 2)];
+        this.rang = getRandomInteger(1, 3);
         this.rate = DEVELOPERS_RANG.findIndex((item) => item === this.rang);
     }
 
+    get specializationRang() {
+        return DEVELOPERS_RANG[this.rang - 1];
+    }
+
+    get workPercent() {
+        return this.rang / DEVELOPERS_RANG.length;
+    }
+
+    setTask = (task) => {
+        task.inProgress = true;
+        this.tasksList.push(task);
+    }
+
     startWorking = () => {
+        if (!this.tasksList.length) {
+            console.warn(`${this.rang} рабочий свободен`);
+
+            return;
+        }
+
         const currentTask = this.tasksList[0];
 
-        if (currentTask.limit) {
-            console.log(currentTask)
-            currentTask.limit = currentTask.limit - 1;
-            currentTask.inProgress = true
-        } else {
+        currentTask.limit = currentTask.limit - this.workPercent;
+
+        if (currentTask.limit <= 0) {
             currentTask.inProgress = false;
             currentTask.completed = true;
-
             this.tasksList = [];
         }
     }
@@ -105,33 +121,28 @@ class Firma {
         });
     }
 
-    getFreeEmployees = () => this.employees.reduce((acc, employee) => ({
-        ...acc,
-        [!employee.tasksList.length && employee.specialization]: [...acc[employee.specialization], employee]
-    }), {
-        [TYPE_SPECIALIZATION[0]]: [],
-        [TYPE_SPECIALIZATION[1]]: [],
-    })
-
     startWorking = () => {
         const notCompletedProjects = this.projects.filter((project) => !project.completed);
         const currentProject = notCompletedProjects[0];
 
         currentProject.tasks.forEach((task) => {
-            const freeEmployees = this.getFreeEmployees();
-            const activeEmployee = freeEmployees[task.type][0];
+            const freeEmployee = this.employees.filter(
+                employee => employee.specialization === task.type && !employee.tasksList.length
+            )[0];
 
-            if (activeEmployee) {
-                activeEmployee.tasksList.push(task);
+            if (!task.inProgress && !task.completed && freeEmployee) {
+                freeEmployee.setTask(task);
             }
         })
 
         this.employees.forEach(employee => employee.startWorking());
+
+        currentProject.completed = currentProject.tasks.every(task => !!task.completed);
+
+        if (currentProject.completed) {
+            console.error(` текущий проект выполнен!`)
+        }
     }
 }
 
 const firma = new Firma();
-
-firma.startWorking();
-
-firma.startWorking();
